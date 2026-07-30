@@ -101,81 +101,12 @@ async function checkUserSession() {
         if (userInfoDiv) userInfoDiv.innerHTML = "";
         currentUsername = "Hilal";
     }
-}
 
-async function handleSignUp() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
-    const username = document.getElementById("username").value.trim();
-
-    if (!email || !password || !username) {
-        alert("Lütfen e-posta, şifre ve kullanıcı adı alanlarını doldurun!");
-        return;
-    }
-
-    const { data: existingUser } = await supabaseClient
-        .from("profiles")
-        .select("username")
-        .eq("username", username)
-        .maybeSingle();
-
-    if (existingUser) {
-        alert("Bu kullanıcı adı zaten alınmış. Lütfen başka bir kullanıcı adı seçin!");
-        return;
-    }
-
-    const { data, error } = await supabaseClient.auth.signUp({
-        email: email,
-        password: password,
-        options: { data: { username: username } }
-    });
-
-    if (error) {
-        alert("Kayıt hatası: " + error.message);
-        return;
-    }
-
-    if (data?.user) {
-        await supabaseClient.from("profiles").insert([
-            { id: data.user.id, username: username }
-        ]);
-    }
-
-    alert("Kayıt başarılı! Oturum açılıyor...");
-    checkUserSession();
-    switchView('home');
-}
-
-async function handleLogin() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    if (!email || !password) {
-        alert("Lütfen e-posta ve şifre alanlarını doldurun!");
-        return;
-    }
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password
-    });
-
-    if (error) {
-        alert("Giriş hatası: " + error.message);
-    } else {
-        checkUserSession();
-        switchView('home');
+    // GİRİŞ KONTROLÜ BİTTİĞİNDE GÖNDERİLERİN YÜKLENMESİNİ SAĞLA
+    if (typeof loadPosts === "function") {
+        loadPosts(currentCategory);
     }
 }
-
-window.handleLogout = async function() {
-    await supabaseClient.auth.signOut();
-    currentUser = null;
-    currentUsername = "Hilal";
-    checkUserSession();
-    switchView('home');
-};
-
 // ==================== FORM YÖNETİMİ VE YILDIZLAR ====================
 
 window.switchFormType = function(type) {
