@@ -124,13 +124,21 @@
 <div id="profile-edit-container" class="hidden" style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 10px;">
     <h3>Profili Düzenle</h3>
     <form id="profile-form">
+        <label>Kullanıcı Adı</label>
+        <input type="text" id="edit-username-input" class="form-control" placeholder="Yeni kullanıcı adınız" style="width: 100%; margin-bottom: 10px; padding: 8px;">
+
         <label>Hakkımda (Biyografi)</label>
-        <textarea id="profile-bio-input" class="form-control" rows="3"></textarea>
+        <textarea id="profile-bio-input" class="form-control" rows="3" style="width: 100%; margin-bottom: 10px; padding: 8px;"></textarea>
         
-        <label style="margin-top: 10px; display: block;">Profil Fotoğrafı</label>
-        <input type="file" id="profile-avatar-file" accept="image/*">
+        <label style="display: block; margin-bottom: 5px;">Profil Fotoğrafı</label>
+        <input type="file" id="profile-avatar-file" accept="image/*" style="margin-bottom: 10px;">
+
+        <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+
+        <label>Yeni Şifre (Değiştirmek istemiyorsanız boş bırakın)</label>
+        <input type="password" id="edit-password-input" class="form-control" placeholder="Yeni şifre (en az 6 karakter)" style="width: 100%; margin-bottom: 15px; padding: 8px;">
         
-        <button type="submit" class="btn btn-primary" style="margin-top: 10px; display: block;">Profili Güncelle</button>
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">Değişiklikleri Kaydet</button>
     </form>
 </div>
         <!-- AKIŞ SAYFASI (Ana Sayfa - Kitaplar / Filmler Listesi) -->

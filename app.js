@@ -560,6 +560,10 @@ window.loadUserProfile = async function(userId, username) {
     if (currentUser && currentUser.id === userId) {
         if (editBtn) editBtn.style.display = "inline-block";
         document.getElementById("profile-bio-input").value = profileData?.bio || "";
+        
+        // Kullanıcı adını da düzenleme inputuna otomatik dolduruyoruz:
+        const usernameInput = document.getElementById("edit-username-input");
+        if (usernameInput) usernameInput.value = profileData?.username || username;
     } else {
         if (editBtn) editBtn.style.display = "none";
     }
@@ -598,6 +602,81 @@ window.toggleEditForm = function() {
         editContainer.classList.toggle("hidden");
     }
 };
+
+// 4. Profil Güncelleme Formu Gönderimi (Biyografi, Kullanıcı Adı, Fotoğraf ve Şifre)
+const profileForm = document.getElementById("profile-form");
+if (profileForm) {
+    profileForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        if (!currentUser) return;
+
+        const newUsername = document.getElementById("edit-username-input")?.value.trim();
+        const newBio = document.getElementById("profile-bio-input")?.value.trim();
+        const newPassword = document.getElementById("edit-password-input")?.value.trim();
+        const avatarFile = document.getElementById("profile-avatar-file")?.files[0];
+
+        let avatarUrl = null;
+
+        // Eğer yeni fotoğraf seçildiyse storage'a yükle
+        if (avatarFile) {
+            const fileExt = avatarFile.name.split('.').pop();
+            const fileName = `${currentUser.id}_${Math.random()}.${fileExt}`;
+            const filePath = `avatars/${fileName}`;
+
+            const { error: uploadError } = await supabaseClient.storage
+                .from('posts-images')
+                .upload(filePath, avatarFile);
+
+            if (uploadError) {
+                alert("Fotoğraf yüklenirken hata oluştu: " + uploadError.message);
+                return;
+            }
+
+            const { data: publicURLData } = supabaseClient.storage
+                .from('posts-images')
+                .getPublicUrl(filePath);
+                
+            avatarUrl = publicURLData.publicUrl;
+        }
+
+        // Profiles tablosunu güncelle (Kullanıcı adı, biyografi, avatar)
+        const updateData = {};
+        if (newBio !== undefined) updateData.bio = newBio;
+        if (newUsername) updateData.username = newUsername;
+        if (avatarUrl) updateData.avatar_url = avatarUrl;
+
+        const { error: profileError } = await supabaseClient
+            .from("profiles")
+            .update(updateData)
+            .eq("id", currentUser.id);
+
+        if (profileError) {
+            alert("Profil güncellenirken hata: " + profileError.message);
+            return;
+        }
+
+        // Eğer yeni şifre yazıldıysa Auth üzerinden şifreyi güncelle
+        if (newPassword) {
+            if (newPassword.length < 6) {
+                alert("Şifre en az 6 karakter olmalıdır!");
+                return;
+            }
+
+            const { error: passwordError } = await supabaseClient.auth.updateUser({
+                password: newPassword
+            });
+
+            if (passwordError) {
+                alert("Şifre güncellenemedi: " + passwordError.message);
+                return;
+            }
+        }
+
+        alert("Profiliniz ve ayarlarınız başarıyla güncellendi!");
+        window.location.reload();
+    });
+}
 
 // Giriş Yap İşlemi
 async function handleLogin() {
