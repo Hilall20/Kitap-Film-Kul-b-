@@ -22,14 +22,22 @@ let currentCategory = 'all'; // 'all', 'kitap', 'film'
 
 // SAYFA YÜKLENDİĞİNDE BAŞLAT
 document.addEventListener("DOMContentLoaded", () => {
-    checkUserSession();
-    loadPosts(currentCategory);
+    const btnLogin = document.getElementById("btn-login");
+    const btnSignup = document.getElementById("btn-signup");
 
-    if (btnLogin) btnLogin.addEventListener("click", handleLogin);
-    if (btnSignup) btnSignup.addEventListener("click", handleSignUp);
-    if (postForm) postForm.addEventListener("submit", handlePostSubmit);
+    if (btnLogin) {
+        btnLogin.addEventListener("click", async (e) => {
+            e.preventDefault(); // Sayfanın ani yenilenmesini ve bağlantı kopmasını engeller
+            await handleLogin();
+        });
+    }
 
-    initStarRating();
+    if (btnSignup) {
+        btnSignup.addEventListener("click", async (e) => {
+            e.preventDefault();
+            await handleSignUp();
+        });
+    }
 });
 
 // ==================== SAYFA / GÖRÜNÜM GEÇİŞLERİ ====================
