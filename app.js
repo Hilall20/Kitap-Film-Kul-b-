@@ -35,10 +35,13 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==================== SAYFA / GÖRÜNÜM GEÇİŞLERİ ====================
 
 window.switchView = function(view) {
+    const profileSection = document.getElementById("profile-section");
+
     if (view === 'home') {
         if (feedSection) feedSection.classList.remove("hidden");
         if (postFormSection) postFormSection.classList.add("hidden");
-        if (!currentUser && authSection) authSection.classList.add("hidden"); // Ana sayfada giriş formu gizlensin
+        if (profileSection) profileSection.classList.add("hidden");
+        if (!currentUser && authSection) authSection.classList.add("hidden");
         loadPosts(currentCategory);
     } else if (view === 'add') {
         if (!currentUser) {
@@ -49,15 +52,19 @@ window.switchView = function(view) {
         }
         if (postFormSection) postFormSection.classList.remove("hidden");
         if (feedSection) feedSection.classList.add("hidden");
+        if (profileSection) profileSection.classList.add("hidden");
+        if (authSection) authSection.classList.add("hidden");
+    } else if (view === 'profile') {
+        if (feedSection) feedSection.classList.add("hidden");
+        if (postFormSection) postFormSection.classList.add("hidden");
+        if (profileSection) profileSection.classList.remove("hidden");
         if (authSection) authSection.classList.add("hidden");
     }
 };
 
 window.filterCategory = function(category) {
     currentCategory = category;
-    if (feedSection) feedSection.classList.remove("hidden");
-    if (postFormSection) postFormSection.classList.add("hidden");
-    if (authSection) authSection.classList.add("hidden");
+    switchView('home');
 
     if (category === 'kitap') {
         feedTitle.innerText = "Kitap İncelemeleri";
@@ -88,7 +95,7 @@ async function checkUserSession() {
 
         currentUsername = profile?.username || user.user_metadata?.username || user.email.split('@')[0];
 
-   if (userInfoDiv) {
+        if (userInfoDiv) {
             userInfoDiv.innerHTML = `
                 <span onclick="loadUserProfile('${user.id}', '${currentUsername}')" style="cursor: pointer;" title="Profilime Git">👤 <strong>${currentUsername}</strong></span>
                 <button onclick="handleLogout()" class="btn btn-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">Çıkış</button>
@@ -102,11 +109,11 @@ async function checkUserSession() {
         currentUsername = "Hilal";
     }
 
-    // GİRİŞ KONTROLÜ BİTTİĞİNDE GÖNDERİLERİN YÜKLENMESİNİ SAĞLA
     if (typeof loadPosts === "function") {
         loadPosts(currentCategory);
     }
 }
+
 // ==================== FORM YÖNETİMİ VE YILDIZLAR ====================
 
 window.switchFormType = function(type) {
@@ -304,65 +311,69 @@ async function loadPosts(category = 'all') {
     postsContainer.innerHTML = "";
 
     posts.forEach(post => {
-        const ratingVal = post.rating || 0;
-        const fullStars = Math.floor(ratingVal);
-        const hasHalf = (ratingVal % 1) !== 0;
-        const emptyStars = 5 - Math.ceil(ratingVal);
-
-        const starsHtml = "★".repeat(fullStars) + (hasHalf ? "⯨" : "") + "☆".repeat(emptyStars);
-        const imgTag = post.image_url ? `<img src="${post.image_url}" class="post-image" alt="${post.title}">` : '';
-
-        const commentsList = (post.comments || []).map(c => `
-            <div class="comment-item" style="font-size: 0.85rem; margin-bottom: 4px;">
-                <strong>👤 ${c.username}:</strong> <span>${c.comment_text}</span>
-            </div>
-        `).join('');
-
-        const isOwner = currentUser && post.user_id === currentUser.id;
-        const deleteButtonHtml = isOwner 
-            ? `<button onclick="deletePost('${post.id}')" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: #dc3545; color:white;">🗑️ Sil</button>`
-            : '';
-
-        const postCard = document.createElement("div");
-        postCard.className = "post-card";
-        postCard.innerHTML = `
-            ${imgTag}
-            <div class="post-content">
-                <div class="post-header">
-                    <span style="cursor: pointer; color: #3498db; font-weight: 600;" onclick="loadUserProfile('${post.user_id}', '${post.username || 'Anonim'}')">
-                        👤 ${post.username || 'Anonim'}
-                    </span>
-                    <span>${post.type === 'kitap' ? '📚 Kitap' : '🎬 Film'}</span>
-                </div>
-                <h3 class="post-title">${post.title}</h3>
-                <div class="post-rating" style="color: #f39c12;">${starsHtml} (${ratingVal}/5)</div>
-                <p class="post-comment">${post.comment || ''}</p>
-                <small style="color:#777;">📅 ${post.watched_read_date || ''}</small>
-                
-                <hr style="margin: 10px 0; opacity: 0.3;">
-
-                <div class="post-actions" style="display: flex; gap: 10px;">
-                    <button onclick="likePost('${post.id}', ${post.likes_count || 0})" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: #e74c3c; color:white;">
-                        ❤️ Beğen (<span id="like-count-${post.id}">${post.likes_count || 0}</span>)
-                    </button>
-                    ${deleteButtonHtml}
-                </div>
-
-                <div class="comments-section" style="margin-top: 15px;">
-                    <h4 style="font-size:0.9rem; margin-bottom:5px;">Yorumlar (${post.comments ? post.comments.length : 0})</h4>
-                    <div class="comments-list" style="max-height: 120px; overflow-y: auto; margin-bottom: 10px; background:#f9f9f9; padding:5px; border-radius:5px;">
-                        ${commentsList || '<p style="font-size: 11px; color: #777;">Henüz yorum yok.</p>'}
-                    </div>
-                    
-                    <div class="add-comment-box" style="display: flex; gap: 5px;">
-                        <input type="text" id="comment-input-${post.id}" placeholder="Yorum yaz..." style="flex:1; padding: 5px; font-size:0.85rem;">
-                        <button onclick="addComment('${post.id}')" class="btn btn-primary" style="padding: 5px 10px; font-size:0.85rem;">Gönder</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        postsContainer.appendChild(postCard);
+        renderPostCard(post, postsContainer);
     });
+}
+
+function renderPostCard(post, container) {
+    const ratingVal = post.rating || 0;
+    const fullStars = Math.floor(ratingVal);
+    const hasHalf = (ratingVal % 1) !== 0;
+    const emptyStars = 5 - Math.ceil(ratingVal);
+
+    const starsHtml = "★".repeat(fullStars) + (hasHalf ? "⯨" : "") + "☆".repeat(emptyStars);
+    const imgTag = post.image_url ? `<img src="${post.image_url}" class="post-image" alt="${post.title}">` : '';
+
+    const commentsList = (post.comments || []).map(c => `
+        <div class="comment-item" style="font-size: 0.85rem; margin-bottom: 4px;">
+            <strong>👤 ${c.username}:</strong> <span>${c.comment_text}</span>
+        </div>
+    `).join('');
+
+    const isOwner = currentUser && post.user_id === currentUser.id;
+    const deleteButtonHtml = isOwner 
+        ? `<button onclick="deletePost('${post.id}')" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: #dc3545; color:white;">🗑️ Sil</button>`
+        : '';
+
+    const postCard = document.createElement("div");
+    postCard.className = "post-card";
+    postCard.innerHTML = `
+        ${imgTag}
+        <div class="post-content">
+            <div class="post-header">
+                <span style="cursor: pointer; color: #3498db; font-weight: 600;" onclick="loadUserProfile('${post.user_id}', '${post.username || 'Anonim'}')">
+                    👤 ${post.username || 'Anonim'}
+                </span>
+                <span>${post.type === 'kitap' ? '📚 Kitap' : '🎬 Film'}</span>
+            </div>
+            <h3 class="post-title">${post.title}</h3>
+            <div class="post-rating" style="color: #f39c12;">${starsHtml} (${ratingVal}/5)</div>
+            <p class="post-comment">${post.comment || ''}</p>
+            <small style="color:#777;">📅 ${post.watched_read_date || ''}</small>
+            
+            <hr style="margin: 10px 0; opacity: 0.3;">
+
+            <div class="post-actions" style="display: flex; gap: 10px;">
+                <button onclick="likePost('${post.id}', ${post.likes_count || 0})" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: #e74c3c; color:white;">
+                    ❤️ Beğen (<span id="like-count-${post.id}">${post.likes_count || 0}</span>)
+                </button>
+                ${deleteButtonHtml}
+            </div>
+
+            <div class="comments-section" style="margin-top: 15px;">
+                <h4 style="font-size:0.9rem; margin-bottom:5px;">Yorumlar (${post.comments ? post.comments.length : 0})</h4>
+                <div class="comments-list" style="max-height: 120px; overflow-y: auto; margin-bottom: 10px; background:#f9f9f9; padding:5px; border-radius:5px;">
+                    ${commentsList || '<p style="font-size: 11px; color: #777;">Henüz yorum yok.</p>'}
+                </div>
+                
+                <div class="add-comment-box" style="display: flex; gap: 5px;">
+                    <input type="text" id="comment-input-${post.id}" placeholder="Yorum yaz..." style="flex:1; padding: 5px; font-size:0.85rem;">
+                    <button onclick="addComment('${post.id}')" class="btn btn-primary" style="padding: 5px 10px; font-size:0.85rem;">Gönder</button>
+                </div>
+            </div>
+        </div>
+    `;
+    container.appendChild(postCard);
 }
 
 window.likePost = async function(postId, currentLikes) {
@@ -446,100 +457,14 @@ window.addComment = async function(postId) {
     }
 };
 
-// Belirli bir kullanıcının profil sayfasını ve gönderilerini yükler
+// ==================== PROFİL İŞLEMLERİ ====================
+
 window.loadUserProfile = async function(userId, username) {
     if (!currentUser) {
-        alert("Profilleri ve paylaşımları görmek için lütfen giriş yapın!");
+        alert("Profilleri görmek için lütfen giriş yapın!");
         return;
     }
 
-    if (feedSection) feedSection.classList.remove("hidden");
-    if (postFormSection) postFormSection.classList.add("hidden");
-    if (authSection) authSection.classList.add("hidden");
-
-    feedTitle.innerText = `${username} Kullanıcısının Paylaşımları`;
-    postsContainer.innerHTML = "<p class='loading-text'>Yükleniyor...</p>";
-
-    const { data: posts, error } = await supabaseClient
-        .from("posts")
-        .select(`*, comments (*)`)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-    if (error) {
-        postsContainer.innerHTML = `<p>Paylaşımlar yüklenemedi: ${error.message}</p>`;
-        return;
-    }
-
-    if (!posts || posts.length === 0) {
-        postsContainer.innerHTML = `<p>${username} henüz herhangi bir paylaşım yapmamış.</p>`;
-        return;
-    }
-
-    postsContainer.innerHTML = "";
-
-    posts.forEach(post => {
-        const ratingVal = post.rating || 0;
-        const fullStars = Math.floor(ratingVal);
-        const hasHalf = (ratingVal % 1) !== 0;
-        const emptyStars = 5 - Math.ceil(ratingVal);
-
-        const starsHtml = "★".repeat(fullStars) + (hasHalf ? "⯨" : "") + "☆".repeat(emptyStars);
-        const imgTag = post.image_url ? `<img src="${post.image_url}" class="post-image" alt="${post.title}">` : '';
-
- const commentsList = (post.comments || []).map(c => `
-        <div class="comment-item" style="font-size: 0.85rem; margin-bottom: 4px;">
-            <strong>👤 ${c.username}:</strong> <span>${c.comment_text}</span>
-        </div>
-    `).join('');
-
-        const isOwner = currentUser && post.user_id === currentUser.id;
-        const deleteButtonHtml = isOwner 
-            ? `<button onclick="deletePost('${post.id}')" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: #dc3545; color:white;">🗑️ Sil</button>`
-            : '';
-
-        const postCard = document.createElement("div");
-        postCard.className = "post-card";
-        postCard.innerHTML = `
-            ${imgTag}
-            <div class="post-content">
-              <div class="post-header">
-    <span style="cursor: pointer; color: #3498db; font-weight: 600;" onclick="loadUserProfile('${post.user_id}', '${post.username || 'Anonim'}')">
-        👤 ${post.username || 'Anonim'}
-    </span>
-    <span>${post.type === 'kitap' ? '📚 Kitap' : '🎬 Film'}</span>
-</div>
-                <h3 class="post-title">${post.title}</h3>
-                <div class="post-rating" style="color: #f39c12;">${starsHtml} (${ratingVal}/5)</div>
-                <p class="post-comment">${post.comment || ''}</p>
-                <small style="color:#777;">📅 ${post.watched_read_date || ''}</small>
-                
-                <hr style="margin: 10px 0; opacity: 0.3;">
-
-                <div class="post-actions" style="display: flex; gap: 10px;">
-                    <button onclick="likePost('${post.id}', ${post.likes_count || 0})" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background-color: #e74c3c; color:white;">
-                        ❤️ Beğen (<span id="like-count-${post.id}">${post.likes_count || 0}</span>)
-                    </button>
-                    ${deleteButtonHtml}
-                </div>
-
-                <div class="comments-section" style="margin-top: 15px;">
-                    <h4 style="font-size:0.9rem; margin-bottom:5px;">Yorumlar (${post.comments ? post.comments.length : 0})</h4>
-                    <div class="comments-list" style="max-height: 120px; overflow-y: auto; margin-bottom: 10px; background:#f9f9f9; padding:5px; border-radius:5px;">
-                        ${commentsList || '<p style="font-size: 11px; color: #777;">Henüz yorum yok.</p>'}
-                    </div>
-                    
-                    <div class="add-comment-box" style="display: flex; gap: 5px;">
-                        <input type="text" id="comment-input-${post.id}" placeholder="Yorum yaz..." style="flex:1; padding: 5px; font-size:0.85rem;">
-                        <button onclick="addComment('${post.id}')" class="btn btn-primary" style="padding: 5px 10px; font-size:0.85rem;">Gönder</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        postsContainer.appendChild(postCard);
-    });
-};
-async function loadUserProfile(userId, username) {
     switchView('profile');
 
     document.getElementById("profile-username-display").textContent = username;
@@ -547,7 +472,7 @@ async function loadUserProfile(userId, username) {
     document.getElementById("profile-avatar-display").src = "https://via.placeholder.com/100";
 
     // 1. Kullanıcının profil bilgilerini çek
-    const { data: profileData, error } = await supabaseClient
+    const { data: profileData } = await supabaseClient
         .from("profiles")
         .select("bio, avatar_url, username")
         .eq("id", userId)
@@ -564,39 +489,49 @@ async function loadUserProfile(userId, username) {
     const editBtn = document.getElementById("toggle-edit-btn");
     const editContainer = document.getElementById("profile-edit-container");
 
-    // Her ihtimale karşı profil açıldığında formu kapalı başlat
     if (editContainer) editContainer.classList.add("hidden");
 
-    // Eğer bakan kişi kendi profiliyse düzenleme butonunu göster ve inputu doldur
     if (currentUser && currentUser.id === userId) {
         if (editBtn) editBtn.style.display = "inline-block";
         document.getElementById("profile-bio-input").value = profileData?.bio || "";
     } else {
         if (editBtn) editBtn.style.display = "none";
     }
-}
 
-    // 2. Kullanıcının gönderilerini yükle (Aynı mantık)
-    const { data: posts, error } = await supabaseClient
-        .from("posts")
-        .select(`*, comments (*)`)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+    // 3. Kullanıcının gönderilerini yükle
+    const profilePostsContainer = document.getElementById("profile-posts-container");
+    if (profilePostsContainer) {
+        profilePostsContainer.innerHTML = "<p class='loading-text'>Yükleniyor...</p>";
 
-    if (error) {
-        postsContainer.innerHTML = `<p>Paylaşımlar yüklenemedi: ${error.message}</p>`;
-        return;
+        const { data: posts, error } = await supabaseClient
+            .from("posts")
+            .select(`*, comments (*)`)
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false });
+
+        if (error) {
+            profilePostsContainer.innerHTML = `<p>Paylaşımlar yüklenemedi: ${error.message}</p>`;
+            return;
+        }
+
+        if (!posts || posts.length === 0) {
+            profilePostsContainer.innerHTML = `<p>${username} henüz herhangi bir paylaşım yapmamış.</p>`;
+            return;
+        }
+
+        profilePostsContainer.innerHTML = "";
+        posts.forEach(post => {
+            renderPostCard(post, profilePostsContainer);
+        });
     }
+};
 
-    if (!posts || posts.length === 0) {
-        postsContainer.innerHTML = `<p>${username} henüz herhangi bir paylaşım yapmamış.</p>`;
-        return;
+window.toggleEditForm = function() {
+    const editContainer = document.getElementById("profile-edit-container");
+    if (editContainer) {
+        editContainer.classList.toggle("hidden");
     }
-
-    postsContainer.innerHTML = "";
-    // Gönderi kartlarını basma döngüsü buraya gelecek (Önceki kodlardaki posts.forEach yapısının aynısı)
-    // ...
-
+};
 
 const profileForm = document.getElementById("profile-form");
 if (profileForm) {
@@ -605,11 +540,11 @@ if (profileForm) {
         if (!currentUser) return;
 
         const newBio = document.getElementById("profile-bio-input").value.trim();
-        const avatarFile = document.getElementById("profile-avatar-file").files[0];
+        const avatarFileInput = document.getElementById("profile-avatar-file");
+        const avatarFile = avatarFileInput ? avatarFileInput.files[0] : null;
         
         let avatarUrl = null;
 
-        // 1. Eğer yeni bir fotoğraf seçildiyse Supabase Storage'a yükle
         if (avatarFile) {
             const fileExt = avatarFile.name.split('.').pop();
             const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
@@ -624,7 +559,6 @@ if (profileForm) {
                 return;
             }
 
-            // 2. Yüklenen fotoğrafın halka açık URL'sini al
             const { data: publicURLData } = supabaseClient.storage
                 .from('avatars')
                 .getPublicUrl(filePath);
@@ -632,7 +566,6 @@ if (profileForm) {
             avatarUrl = publicURLData.publicUrl;
         }
 
-        // 3. Veritabanındaki profiles tablosunu güncelle
         const updateData = { 
             bio: newBio,
             updated_at: new Date()
@@ -655,10 +588,7 @@ if (profileForm) {
             if (avatarUrl) {
                 document.getElementById("profile-avatar-display").src = avatarUrl;
             }
+            toggleEditForm();
         }
     });
-}
-function toggleEditForm() {
-    const editContainer = document.getElementById("profile-edit-container");
-    editContainer.classList.toggle("hidden");
 }
