@@ -1,0 +1,156 @@
+  <!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitap - Film Kulübü</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- ÜST MENÜ (HEADER): Tam ekran, solda başlık, sağda menü öğeleri ve profil -->
+    <header class="main-header">
+        <div class="header-left">
+            <span class="header-icon">📚🎬</span>
+            <h1>Kitap - Film Kulübü</h1>
+        </div>
+        
+        <div class="header-right">
+            <!-- Navigasyon Menüsü -->
+            <nav class="nav-menu">
+                <!-- Ana Sayfa Dropdown (Kitap - Film) -->
+                <div class="dropdown">
+                    <button class="nav-btn active" onclick="switchView('home')">🏠 Ana Sayfa ▼</button>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="filterCategory('kitap')">📚 Kitaplar</a>
+                        <a href="#" onclick="filterCategory('film')">🎬 Filmler</a>
+                    </div>
+                </div>
+                
+                <!-- Ekle Butonu -->
+                <button id="nav-btn-add" class="nav-btn hidden" onclick="switchView('add')">➕ Ekle</button>
+            </nav>
+
+            <!-- Kullanıcı Profili / Giriş Durumu -->
+            <div id="user-info" class="user-info"></div>
+        </div>
+    </header>
+
+    <div class="container">
+       
+if (userInfoDiv) {
+    userInfoDiv.innerHTML = `
+        <span style="cursor: pointer; font-weight: 600; color: #3498db;" onclick="loadUserProfile('${user.id}', '${currentUsername}')">👤 ${currentUsername}</span>
+        <button onclick="handleLogout()" class="btn btn-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">Çıkış</button>
+    `;
+}
+        <!-- GİRİŞ / KAYIT BÖLÜMÜ (Giriş yapılmamışsa görünür) -->
+        <section id="auth-section" class="card auth-card">
+            <h2>Giriş Yap / Kayıt Ol</h2>
+            <div class="form-group">
+                <label for="email">E-posta Adresi</label>
+                <input type="email" id="email" placeholder="ornek@mail.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Şifre</label>
+                <input type="password" id="password" placeholder="******">
+            </div>
+            <div class="form-group" id="username-group">
+                <label for="username">Kullanıcı Adı (Rumuz)</label>
+                <input type="text" id="username" placeholder="Kullanıcı adınız">
+            </div>
+            <div class="auth-buttons" style="display: flex; gap: 10px; margin-top: 15px;">
+                <button id="btn-login" class="btn btn-primary" style="flex: 1;">Giriş Yap</button>
+                <button id="btn-signup" class="btn btn-secondary" style="flex: 1;">Kayıt Ol</button>
+            </div>
+        </section>
+
+        <!-- YENİ DEĞERLENDİRME PAYLAŞMA FORMU (Ekle Sayfası) -->
+        <section id="post-form-section" class="card post-form-card hidden">
+            <h2>Yeni Değerlendirme Paylaş</h2>
+            
+            <div class="type-selector" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button type="button" id="tab-book" class="btn btn-primary active" onclick="switchFormType('kitap')" style="flex:1;">📚 Kitap</button>
+                <button type="button" id="tab-movie" class="btn btn-secondary" onclick="switchFormType('film')" style="flex:1;">🎬 Film</button>
+            </div>
+
+            <form id="post-form">
+                <input type="hidden" id="post-type" value="kitap">
+
+                <div class="form-group">
+                    <label id="lbl-title" for="post-title">Kitap Adı</label>
+                    <input type="text" id="post-title" required placeholder="Eserin adını girin...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Puan (1 - 5)</label>
+                    <div id="star-rating" class="star-rating">
+                        <span class="star" data-value="1">★</span>
+                        <span class="star" data-value="2">★</span>
+                        <span class="star" data-value="3">★</span>
+                        <span class="star" data-value="4">★</span>
+                        <span class="star" data-value="5">★</span>
+                    </div>
+                    <input type="hidden" id="post-rating" value="5">
+                    <small>Seçilen Puan: <span id="rating-value-display">5.0</span> / 5</small>
+                </div>
+
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="post-comment">Yorum / İnceleme</label>
+                    <textarea id="post-comment" rows="3" placeholder="Düşüncelerini paylaş..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label id="lbl-date" for="post-date">Okuma Tarihi</label>
+                    <input type="date" id="post-date">
+                </div>
+
+                <div class="form-group">
+                    <label for="post-image-file">Görsel Yükle (İsteğe Bağlı)</label>
+                    <input type="file" id="post-image-file" accept="image/*">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Paylaş</button>
+            </form>
+        </section>
+
+        <!-- PROFİL SAYFASI / BÖLÜMÜ -->
+<section id="profile-section" class="card hidden">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <img id="profile-avatar-display" src="https://via.placeholder.com/100" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #3498db; margin-bottom: 10px;">
+        <h2 id="profile-username-display" style="font-size: 1.4rem; color: #2c3e50;">Kullanıcı Adı</h2>
+        <p id="profile-bio-display" style="font-size: 0.95rem; color: #666; margin-top: 5px;">Henüz bir biyografi eklenmemiş.</p>
+    </div>
+
+    <!-- Sadece Profil Sahibiyse Görünecek Düzenleme Formu -->
+    <div id="profile-edit-container" class="hidden" style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 15px;">
+        <h3 style="font-size: 1rem; margin-bottom: 10px; color: #2c3e50;">Profilimi Düzenle</h3>
+        <form id="profile-form">
+            <div class="form-group">
+                <label for="profile-bio-input">Hakkımda (Biyografi)</label>
+                <textarea id="profile-bio-input" rows="2" placeholder="Kendinden bahset..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="profile-avatar-file">Profil Fotoğrafı</label>
+                <input type="file" id="profile-avatar-file" accept="image/*">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Profili Güncelle</button>
+        </form>
+    </div>
+</section>
+        <!-- AKIŞ SAYFASI (Ana Sayfa - Kitaplar / Filmler Listesi) -->
+        <section id="feed-section" class="feed-section">
+            <div class="feed-header-banner">
+                <h2 id="feed-title">Tüm İncelemeler</h2>
+            </div>
+            <div id="posts-container">
+                <p class="loading-text">Yükleniyor...</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
