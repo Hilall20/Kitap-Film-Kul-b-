@@ -654,3 +654,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+async function handleLogin() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!email || !password) {
+        alert("Lütfen e-posta ve şifre alanlarını doldurun!");
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+    });
+
+    if (error) {
+        alert("Giriş hatası: " + error.message);
+    } else {
+        checkUserSession();
+        switchView('home');
+    }
+}
