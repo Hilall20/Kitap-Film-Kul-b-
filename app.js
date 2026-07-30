@@ -599,57 +599,88 @@ window.toggleEditForm = function() {
     }
 };
 
-const profileForm = document.getElementById("profile-form");
-if (profileForm) {
-    profileForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (!currentUser) return;
+// Giriş Yap İşlemi
+async function handleLogin() {
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
 
-        const newBio = document.getElementById("profile-bio-input").value.trim();
-        const avatarFileInput = document.getElementById("profile-avatar-file");
-        const avatarFile = avatarFileInput ? avatarFileInput.files[0] : null;
-        
-        let avatarUrl = document.getElementById("profile-avatar-display").src; // Mevcut resmi koru
+    const email = emailInput ? emailInput.value.trim() : "";
+    const password = passwordInput ? passwordInput.value.trim() : "";
 
-        if (avatarFile) {
-            const fileExt = avatarFile.name.split('.').pop();
-            const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
-            const filePath = `${fileName}`;
+    if (!email || !password) {
+        alert("Lütfen e-posta ve şifrenizi girin.");
+        return;
+    }
 
-            const { error: uploadError } = await supabaseClient.storage
-                .from('avatars')
-                .upload(filePath, avatarFile);
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
 
-            if (uploadError) {
-                alert("Fotoğraf yüklenirken hata oluştu: " + uploadError.message);
-                return;
-            }
+    if (error) {
+        alert("Giriş başarısız: " + error.message);
+    } else {
+        alert("Başarıyla giriş yapıldı!");
+        window.location.reload();
+    }
+}
 
-            const { data: publicURLData } = supabaseClient.storage
-                .from('avatars')
-                .getPublicUrl(filePath);
+// Kayıt Ol İşlemi
+async function handleSignUp() {
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const usernameInput = document.getElementById("username");
 
-            avatarUrl = publicURLData.publicUrl;
-        }
+    const email = emailInput ? emailInput.value.trim() : "";
+    const password = passwordInput ? passwordInput.value.trim() : "";
+    const username = usernameInput ? usernameInput.value.trim() : "Kullanici";
 
-        // UPSERT: Kayıt varsa günceller, yoksa yeni satır oluşturur
-        const { error } = await supabaseClient
-            .from("profiles")
-            .upsert({ 
-                id: currentUser.id,
-                username: currentUsername,
-                bio: newBio,
-                avatar_url: avatarUrl,
-                updated_at: new Date()
-            });
+    if (!email || !password) {
+        alert("Lütfen e-posta ve şifrenizi girin.");
+        return;
+    }
 
-        if (error) {
-            alert("Profil güncellenirken hata oluştu: " + error.message);
-        } else {
-            alert("Profil başarıyla kaydedildi!");
-            document.getElementById("profile-bio-display").textContent = newBio || "Henüz bir biyografi eklenmemiş.";
-            document.getElementById("profile-avatar-display").src = avatarUrl;
-            toggleEditForm();
+    const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+            data: { username: username }
         }
     });
+
+    if (error) {
+        alert("Kayıt olma başarısız: " + error.message);
+    } else {
+        alert("Kayıt başarılı! Giriş yapabilirsiniz.");
+    }
 }
+
+// Çıkış Yap İşlemi
+async function handleLogout() {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+        alert("Çıkış yapılırken hata oluştu: " + error.message);
+    } else {
+        window.location.reload();
+    }
+}
+
+// Butonlara tıklandığında bu fonksiyonların çalışması için dinleyiciler:
+document.addEventListener("DOMContentLoaded", () => {
+    const btnLogin = document.getElementById("btn-login");
+    const btnSignup = document.getElementById("btn-signup");
+
+    if (btnLogin) {
+        btnLogin.addEventListener("click", (e) => {
+            e.preventDefault();
+            handleLogin();
+        });
+    }
+
+    if (btnSignup) {
+        btnSignup.addEventListener("click", (e) => {
+            e.preventDefault();
+            handleSignUp();
+        });
+    }
+});
