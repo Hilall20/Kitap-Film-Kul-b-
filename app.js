@@ -88,9 +88,9 @@ async function checkUserSession() {
 
         currentUsername = profile?.username || user.user_metadata?.username || user.email.split('@')[0];
 
-        if (userInfoDiv) {
+   if (userInfoDiv) {
             userInfoDiv.innerHTML = `
-                <span>👤 <strong>${currentUsername}</strong></span>
+                <span onclick="loadUserProfile('${user.id}', '${currentUsername}')" style="cursor: pointer;" title="Profilime Git">👤 <strong>${currentUsername}</strong></span>
                 <button onclick="handleLogout()" class="btn btn-secondary" style="padding: 0.2rem 0.4rem; font-size: 0.7rem;">Çıkış</button>
             `;
         }
@@ -603,85 +603,6 @@ window.loadUserProfile = async function(userId, username) {
     // ...
 };
 
-// PROFİL GÜNCELLEME İŞLEMİ
-document.addEventListener("DOMContentLoaded", () => {
-    const profileForm = document.getElementById("profile-form");
-    if (profileForm) {
-        profileForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            if (!currentUser) return;
-
-            const newBio = document.getElementById("profile-bio-input").value;
-            const fileInput = document.getElementById("profile-avatar-file");
-            const file = fileInput ? fileInput.files[0] : null;
-
-            let avatarUrl = document.getElementById("profile-avatar-display").src;
-
-            if (file) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `avatar_${currentUser.id}_${Date.now()}.${fileExt}`;
-
-                const { error: uploadError } = await supabaseClient
-                    .storage
-                    .from('post-imagess') // Veya 'avatars' bucket'ı açtıysan burayı 'avatars' yapabilirsin
-                    .upload(fileName, file, { upsert: true });
-
-                if (uploadError) {
-                    alert("Avatar yükleme hatası: " + uploadError.message);
-                    return;
-                }
-
-                const { data: publicUrlData } = supabaseClient
-                    .storage
-                    .from('post-imagess')
-                    .getPublicUrl(fileName);
-
-                avatarUrl = publicUrlData.publicUrl;
-            }
-
-            const { error } = await supabaseClient
-                .from("profiles")
-                .update({ bio: newBio, avatar_url: avatarUrl })
-                .eq("id", currentUser.id);
-
-            if (error) {
-                alert("Profil güncellenemedi: " + error.message);
-            } else {
-                alert("Profiliniz başarıyla güncellendi!");
-                loadUserProfile(currentUser.id, currentUsername);
-            }
-        });
-    }
-});
-
-async function handleLogin() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
-
-    if (!email || !password) {
-        alert("Lütfen e-posta ve şifre alanlarını doldurun!");
-        return;
-    }
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password
-    });
-
-    if (error) {
-        alert("Giriş hatası: " + error.message);
-    } else {
-        checkUserSession();
-        switchView('home');
-    }
-}
-window.handleLogout = async function() {
-    await supabaseClient.auth.signOut();
-    currentUser = null;
-    currentUsername = "Hilal";
-    checkUserSession();
-    switchView('home');
-};
 const profileForm = document.getElementById("profile-form");
 if (profileForm) {
     profileForm.addEventListener("submit", async (e) => {
@@ -689,13 +610,46 @@ if (profileForm) {
         if (!currentUser) return;
 
         const newBio = document.getElementById("profile-bio-input").value.trim();
+        const avatarFile = document.getElementById("profile-avatar-file").files[0];
+        
+        let avatarUrl = null;
+
+        // 1. Eğer yeni bir fotoğraf seçildiyse Supabase Storage'a yükle
+        if (avatarFile) {
+            const fileExt = avatarFile.name.split('.').pop();
+            const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabaseClient.storage
+                .from('avatars')
+                .upload(filePath, avatarFile);
+
+            if (uploadError) {
+                alert("Fotoğraf yüklenirken hata oluştu: " + uploadError.message);
+                return;
+            }
+
+            // 2. Yüklenen fotoğrafın halka açık URL'sini al
+            const { data: publicURLData } = supabaseClient.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            avatarUrl = publicURLData.publicUrl;
+        }
+
+        // 3. Veritabanındaki profiles tablosunu güncelle
+        const updateData = { 
+            bio: newBio,
+            updated_at: new Date()
+        };
+
+        if (avatarUrl) {
+            updateData.avatar_url = avatarUrl;
+        }
 
         const { error } = await supabaseClient
             .from("profiles")
-            .update({ 
-                bio: newBio,
-                updated_at: new Date()
-            })
+            .update(updateData)
             .eq("id", currentUser.id);
 
         if (error) {
@@ -703,6 +657,9 @@ if (profileForm) {
         } else {
             alert("Profil başarıyla güncellendi!");
             document.getElementById("profile-bio-display").textContent = newBio || "Henüz bir biyografi eklenmemiş.";
+            if (avatarUrl) {
+                document.getElementById("profile-avatar-display").src = avatarUrl;
+            }
         }
     });
 }
