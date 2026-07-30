@@ -539,27 +539,15 @@ window.loadUserProfile = async function(userId, username) {
         postsContainer.appendChild(postCard);
     });
 };
-// GÜNCELLENMİŞ loadUserProfile FONKSİYONU
-window.loadUserProfile = async function(userId, username) {
-    if (!currentUser) {
-        alert("Profilleri görmek için lütfen giriş yapın!");
-        return;
-    }
+async function loadUserProfile(userId, username) {
+    switchView('profile');
 
-    // Görünürlük ayarları: Sadece profil alanı ve o kişinin gönderileri görünsün
-    if (feedSection) feedSection.classList.remove("hidden");
-    if (postFormSection) postFormSection.classList.add("hidden");
-    if (authSection) authSection.classList.add("hidden");
-    
-    // Profil kartı elementlerini seç (HTML'e eklediğimiz yapı)
-    const profileSection = document.getElementById("profile-section");
-    if (profileSection) profileSection.classList.remove("hidden");
+    document.getElementById("profile-username-display").textContent = username;
+    document.getElementById("profile-bio-display").textContent = "Yükleniyor...";
+    document.getElementById("profile-avatar-display").src = "https://via.placeholder.com/100";
 
-    feedTitle.innerText = `${username} Kullanıcısının Paylaşımları`;
-    postsContainer.innerHTML = "<p class='loading-text'>Yükleniyor...</p>";
-
-    // 1. Kullanıcının profil bilgilerini (Bio, Avatar) çek
-    const { data: profileData } = await supabaseClient
+    // 1. Kullanıcının profil bilgilerini çek
+    const { data: profileData, error } = await supabaseClient
         .from("profiles")
         .select("bio, avatar_url, username")
         .eq("id", userId)
@@ -568,18 +556,25 @@ window.loadUserProfile = async function(userId, username) {
     const bioText = profileData?.bio || "Henüz bir biyografi eklenmemiş.";
     const avatarImg = profileData?.avatar_url || "https://via.placeholder.com/100";
 
-    document.getElementById("profile-username-display").innerText = profileData?.username || username;
-    document.getElementById("profile-bio-display").innerText = bioText;
+    document.getElementById("profile-username-display").textContent = profileData?.username || username;
+    document.getElementById("profile-bio-display").textContent = bioText;
     document.getElementById("profile-avatar-display").src = avatarImg;
 
-    // Eğer bakan kişi kendi profiliyse, düzenleme formunu aç
+    // 2. Düzenleme butonu ve form kontrolü
+    const editBtn = document.getElementById("toggle-edit-btn");
     const editContainer = document.getElementById("profile-edit-container");
-    if (currentUser.id === userId) {
-        if (editContainer) editContainer.classList.remove("hidden");
+
+    // Her ihtimale karşı profil açıldığında formu kapalı başlat
+    if (editContainer) editContainer.classList.add("hidden");
+
+    // Eğer bakan kişi kendi profiliyse düzenleme butonunu göster ve inputu doldur
+    if (currentUser && currentUser.id === userId) {
+        if (editBtn) editBtn.style.display = "inline-block";
         document.getElementById("profile-bio-input").value = profileData?.bio || "";
     } else {
-        if (editContainer) editContainer.classList.add("hidden");
+        if (editBtn) editBtn.style.display = "none";
     }
+}
 
     // 2. Kullanıcının gönderilerini yükle (Aynı mantık)
     const { data: posts, error } = await supabaseClient
@@ -601,7 +596,7 @@ window.loadUserProfile = async function(userId, username) {
     postsContainer.innerHTML = "";
     // Gönderi kartlarını basma döngüsü buraya gelecek (Önceki kodlardaki posts.forEach yapısının aynısı)
     // ...
-};
+
 
 const profileForm = document.getElementById("profile-form");
 if (profileForm) {
@@ -662,4 +657,8 @@ if (profileForm) {
             }
         }
     });
+}
+function toggleEditForm() {
+    const editContainer = document.getElementById("profile-edit-container");
+    editContainer.classList.toggle("hidden");
 }
