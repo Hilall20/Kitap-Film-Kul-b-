@@ -123,7 +123,9 @@
 <!-- Profil Düzenleme Formu (Başlangıçta gizli) -->
 <div id="profile-edit-container" class="hidden" style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 10px;">
     <h3>Profili Düzenle</h3>
-    <form id="profile-form">
+    
+    <!-- 1. BİLGİLERİ GÜNCELLEME FORMU -->
+    <form id="profile-info-form">
         <label>Kullanıcı Adı</label>
         <input type="text" id="edit-username-input" class="form-control" placeholder="Yeni kullanıcı adınız" style="width: 100%; margin-bottom: 10px; padding: 8px;">
 
@@ -133,25 +135,21 @@
         <label style="display: block; margin-bottom: 5px;">Profil Fotoğrafı</label>
         <input type="file" id="profile-avatar-file" accept="image/*" style="margin-bottom: 10px;">
 
-        <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">Bilgileri Kaydet</button>
+    </form>
 
-        <label>Yeni Şifre (Değiştirmek istemiyorsanız boş bırakın)</label>
-        <input type="password" id="edit-password-input" class="form-control" placeholder="Yeni şifre (en az 6 karakter)" style="width: 100%; margin-bottom: 15px; padding: 8px;">
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ccc;">
+
+    <!-- 2. ŞİFRE DEĞİŞTİRME FORMU (Eski şifre zorunlu) -->
+    <form id="password-change-form">
+        <h4>Şifre Değiştir</h4>
         
-        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">Değişiklikleri Kaydet</button>
+        <label>Eski Şifre</label>
+        <input type="password" id="old-password-input" class="form-control" placeholder="Mevcut şifreniz" style="width: 100%; margin-bottom: 10px; padding: 8px;" required>
+
+        <label>Yeni Şifre</label>
+        <input type="password" id="new-password-input" class="form-control" placeholder="Yeni şifre (en az 6 karakter)" style="width: 100%; margin-bottom: 15px; padding: 8px;" required>
+        
+        <button type="submit" class="btn btn-secondary" style="width: 100%; padding: 10px; background-color: #e67e22; color: white;">Şifreyi Güncelle</button>
     </form>
 </div>
-        <!-- AKIŞ SAYFASI (Ana Sayfa - Kitaplar / Filmler Listesi) -->
-        <section id="feed-section" class="feed-section">
-            <div class="feed-header-banner">
-                <h2 id="feed-title">Tüm İncelemeler</h2>
-            </div>
-            <div id="posts-container">
-                <p class="loading-text">Yükleniyor...</p>
-            </div>
-        </section>
-    </div>
-
-    <script src="app.js"></script>
-</body>
-</html>

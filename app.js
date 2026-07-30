@@ -603,22 +603,22 @@ window.toggleEditForm = function() {
     }
 };
 
-// 4. Profil Güncelleme Formu Gönderimi (Biyografi, Kullanıcı Adı, Fotoğraf ve Şifre)
-const profileForm = document.getElementById("profile-form");
-if (profileForm) {
-    profileForm.addEventListener("submit", async (e) => {
+// ==================== PROFİL VE ŞİFRE GÜNCELLEME İŞLEMLERİ ====================
+
+// 1. Profil Bilgilerini Güncelleme Formu
+const profileInfoForm = document.getElementById("profile-info-form");
+if (profileInfoForm) {
+    profileInfoForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        
         if (!currentUser) return;
 
         const newUsername = document.getElementById("edit-username-input")?.value.trim();
         const newBio = document.getElementById("profile-bio-input")?.value.trim();
-        const newPassword = document.getElementById("edit-password-input")?.value.trim();
         const avatarFile = document.getElementById("profile-avatar-file")?.files[0];
 
         let avatarUrl = null;
 
-        // Eğer yeni fotoğraf seçildiyse storage'a yükle
+        // Fotoğraf seçildiyse yükle
         if (avatarFile) {
             const fileExt = avatarFile.name.split('.').pop();
             const fileName = `${currentUser.id}_${Math.random()}.${fileExt}`;
@@ -640,7 +640,6 @@ if (profileForm) {
             avatarUrl = publicURLData.publicUrl;
         }
 
-        // Profiles tablosunu güncelle (Kullanıcı adı, biyografi, avatar)
         const updateData = {};
         if (newBio !== undefined) updateData.bio = newBio;
         if (newUsername) updateData.username = newUsername;
@@ -656,25 +655,55 @@ if (profileForm) {
             return;
         }
 
-        // Eğer yeni şifre yazıldıysa Auth üzerinden şifreyi güncelle
-        if (newPassword) {
-            if (newPassword.length < 6) {
-                alert("Şifre en az 6 karakter olmalıdır!");
-                return;
-            }
+        alert("Profil bilgileriniz başarıyla güncellendi!");
+        window.location.reload();
+    });
+}
 
-            const { error: passwordError } = await supabaseClient.auth.updateUser({
-                password: newPassword
-            });
+// 2. Şifre Değiştirme Formu (Eski şifre doğrulamalı)
+const passwordChangeForm = document.getElementById("password-change-form");
+if (passwordChangeForm) {
+    passwordChangeForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!currentUser) return;
 
-            if (passwordError) {
-                alert("Şifre güncellenemedi: " + passwordError.message);
-                return;
-            }
+        const oldPassword = document.getElementById("old-password-input")?.value.trim();
+        const newPassword = document.getElementById("new-password-input")?.value.trim();
+
+        if (!oldPassword || !newPassword) {
+            alert("Lütfen hem eski hem de yeni şifrenizi girin.");
+            return;
         }
 
-        alert("Profiliniz ve ayarlarınız başarıyla güncellendi!");
-        window.location.reload();
+        if (newPassword.length < 6) {
+            alert("Yeni şifre en az 6 karakter olmalıdır!");
+            return;
+        }
+
+        // Önce eski şifreyi doğrulamak için kullanıcıyı tekrar test edin
+        const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+            email: currentUser.email,
+            password: oldPassword
+        });
+
+        if (signInError) {
+            alert("Eski şifrenizi yanlış girdiniz: " + signInError.message);
+            return;
+        }
+
+        // Eski şifre doğruysa yeni şifreyi güncelle
+        const { error: updateError } = await supabaseClient.auth.updateUser({
+            password: newPassword
+        });
+
+        if (updateError) {
+            alert("Şifre güncellenemedi: " + updateError.message);
+            return;
+        }
+
+        alert("Şifreniz başarıyla değiştirildi!");
+        document.getElementById("old-password-input").value = "";
+        document.getElementById("new-password-input").value = "";
     });
 }
 
