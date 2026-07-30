@@ -113,7 +113,55 @@ async function checkUserSession() {
         loadPosts(currentCategory);
     }
 }
+async function handleLogin() {
+    const email = prompt("E-posta adresinizi girin:");
+    const password = prompt("Şifrenizi girin:");
+    
+    if (!email || !password) return;
 
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
+
+    if (error) {
+        alert("Giriş başarısız: " + error.message);
+    } else {
+        alert("Başarıyla giriş yapıldı!");
+        window.location.reload();
+    }
+}
+
+async function handleSignUp() {
+    const email = prompt("Kayıt olmak için e-posta adresinizi girin:");
+    const password = prompt("Bir şifre belirleyin (en az 6 karakter):");
+    const username = prompt("Bir kullanıcı adı belirleyin:") || "Kullanici";
+
+    if (!email || !password) return;
+
+    const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+            data: { username: username }
+        }
+    });
+
+    if (error) {
+        alert("Kayıt olma başarısız: " + error.message);
+    } else {
+        alert("Kayıt başarılı! Lütfen e-postanızı kontrol edin veya giriş yapın.");
+    }
+}
+
+async function handleLogout() {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+        alert("Çıkış yapılırken hata oluştu: " + error.message);
+    } else {
+        window.location.reload();
+    }
+}
 // ==================== FORM YÖNETİMİ VE YILDIZLAR ====================
 
 window.switchFormType = function(type) {
