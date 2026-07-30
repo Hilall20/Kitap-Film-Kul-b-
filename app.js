@@ -543,7 +543,7 @@ if (profileForm) {
         const avatarFileInput = document.getElementById("profile-avatar-file");
         const avatarFile = avatarFileInput ? avatarFileInput.files[0] : null;
         
-        let avatarUrl = null;
+        let avatarUrl = document.getElementById("profile-avatar-display").src; // Mevcut resmi koru
 
         if (avatarFile) {
             const fileExt = avatarFile.name.split('.').pop();
@@ -566,28 +566,23 @@ if (profileForm) {
             avatarUrl = publicURLData.publicUrl;
         }
 
-        const updateData = { 
-            bio: newBio,
-            updated_at: new Date()
-        };
-
-        if (avatarUrl) {
-            updateData.avatar_url = avatarUrl;
-        }
-
+        // UPSERT: Kayıt varsa günceller, yoksa yeni satır oluşturur
         const { error } = await supabaseClient
             .from("profiles")
-            .update(updateData)
-            .eq("id", currentUser.id);
+            .upsert({ 
+                id: currentUser.id,
+                username: currentUsername,
+                bio: newBio,
+                avatar_url: avatarUrl,
+                updated_at: new Date()
+            });
 
         if (error) {
             alert("Profil güncellenirken hata oluştu: " + error.message);
         } else {
-            alert("Profil başarıyla güncellendi!");
+            alert("Profil başarıyla kaydedildi!");
             document.getElementById("profile-bio-display").textContent = newBio || "Henüz bir biyografi eklenmemiş.";
-            if (avatarUrl) {
-                document.getElementById("profile-avatar-display").src = avatarUrl;
-            }
+            document.getElementById("profile-avatar-display").src = avatarUrl;
             toggleEditForm();
         }
     });
