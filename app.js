@@ -1,9 +1,9 @@
-// ==================== SUPABASE BAĞLANTISI ====================
+// SUPABASE BAĞLANTISI
 const SUPABASE_URL = "https://rvawesmvmuqpapjyhxzc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_PEPjRXV73A4FmIY2gnPgCw_ykXgFYmo";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ==================== DOM ELEMENTLERİ ====================
+// DOM ELEMENTLERİ
 const btnLogin = document.getElementById("btn-login");
 const btnSignup = document.getElementById("btn-signup");
 const authSection = document.getElementById("auth-section");
@@ -23,34 +23,13 @@ let currentCategory = 'all'; // 'all', 'kitap', 'film'
 // SAYFA YÜKLENDİĞİNDE BAŞLAT
 document.addEventListener("DOMContentLoaded", () => {
     checkUserSession();
+    loadPosts(currentCategory);
 
-    const btnLogin = document.getElementById("btn-login");
-    const btnSignup = document.getElementById("btn-signup");
+    if (btnLogin) btnLogin.addEventListener("click", handleLogin);
+    if (btnSignup) btnSignup.addEventListener("click", handleSignUp);
+    if (postForm) postForm.addEventListener("submit", handlePostSubmit);
 
-    if (btnLogin) {
-        btnLogin.addEventListener("click", async (e) => {
-            e.preventDefault();
-            await handleLogin();
-        });
-    }
-
-    if (btnSignup) {
-        btnSignup.addEventListener("click", async (e) => {
-            e.preventDefault();
-            await handleSignUp();
-        });
-    }
-
-    // Yeni Gönderi Formu Dinleyicisi
-    if (postForm) {
-        postForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            await handleCreatePost();
-        });
-    }
-
-    // Yıldız Puanlama Mantığı
-    setupStarRating();
+    initStarRating();
 });
 
 // ==================== SAYFA / GÖRÜNÜM GEÇİŞLERİ ====================
@@ -62,7 +41,7 @@ window.switchView = function(view) {
         if (feedSection) feedSection.classList.remove("hidden");
         if (postFormSection) postFormSection.classList.add("hidden");
         if (profileSection) profileSection.classList.add("hidden");
-        if (!currentUser && authSection) authSection.classList.remove("hidden");
+        if (!currentUser && authSection) authSection.classList.add("hidden");
         loadPosts(currentCategory);
     } else if (view === 'add') {
         if (!currentUser) {
@@ -96,29 +75,6 @@ window.filterCategory = function(category) {
     }
 
     loadPosts(category);
-};
-
-// Kitap / Film Form Türü Değiştirme
-window.switchFormType = function(type) {
-    const postTypeInput = document.getElementById("post-type");
-    const lblTitle = document.getElementById("lbl-title");
-    const lblDate = document.getElementById("lbl-date");
-    const tabBook = document.getElementById("tab-book");
-    const tabMovie = document.getElementById("tab-movie");
-
-    if (postTypeInput) postTypeInput.value = type;
-
-    if (type === 'kitap') {
-        if (lblTitle) lblTitle.innerText = "Kitap Adı";
-        if (lblDate) lblDate.innerText = "Okuma Tarihi";
-        if (tabBook) { tabBook.className = "btn btn-primary active"; }
-        if (tabMovie) { tabMovie.className = "btn btn-secondary"; }
-    } else {
-        if (lblTitle) lblTitle.innerText = "Film Adı";
-        if (lblDate) lblDate.innerText = "İzleme Tarihi";
-        if (tabMovie) { tabMovie.className = "btn btn-primary active"; }
-        if (tabBook) { tabBook.className = "btn btn-secondary"; }
-    }
 };
 
 // ==================== AUTH (KULLANICI) İŞLEMLERİ ====================
@@ -158,166 +114,178 @@ async function checkUserSession() {
     }
 }
 
-async function handleLogin() {
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
+// ==================== FORM YÖNETİMİ VE YILDIZLAR ====================
 
-    const email = emailInput ? emailInput.value.trim() : "";
-    const password = passwordInput ? passwordInput.value.trim() : "";
+window.switchFormType = function(type) {
+    document.getElementById("post-type").value = type;
 
-    if (!email || !password) {
-        alert("Lütfen e-posta ve şifrenizi girin.");
-        return;
-    }
+    const tabBook = document.getElementById("tab-book");
+    const tabMovie = document.getElementById("tab-movie");
+    const lblTitle = document.getElementById("lbl-title");
+    const lblDate = document.getElementById("lbl-date");
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password,
-    });
-
-    if (error) {
-        alert("Giriş başarısız: " + error.message);
+    if (type === 'kitap') {
+        tabBook.classList.add("active");
+        tabMovie.classList.remove("active");
+        lblTitle.innerText = "Kitap Adı";
+        lblDate.innerText = "Okuma Tarihi";
     } else {
-        alert("Başarıyla giriş yapıldı!");
-        window.location.reload();
+        tabMovie.classList.add("active");
+        tabBook.classList.remove("active");
+        lblTitle.innerText = "Film Adı";
+        lblDate.innerText = "İzleme Tarihi";
     }
-}
+};
 
-async function handleSignUp() {
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
-    const usernameInput = document.getElementById("username");
-
-    const email = emailInput ? emailInput.value.trim() : "";
-    const password = passwordInput ? passwordInput.value.trim() : "";
-    const username = usernameInput ? usernameInput.value.trim() : "Kullanici";
-
-    if (!email || !password) {
-        alert("Lütfen e-posta ve şifrenizi girin.");
-        return;
-    }
-
-    const { data, error } = await supabaseClient.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-            data: { username: username }
-        }
-    });
-
-    if (error) {
-        alert("Kayıt olma başarısız: " + error.message);
-    } else {
-        alert("Kayıt başarılı! Giriş yapabilirsiniz.");
-    }
-}
-
-async function handleLogout() {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) {
-        alert("Çıkış yapılırken hata oluştu: " + error.message);
-    } else {
-        window.location.reload();
-    }
-}
-
-// ==================== YENİ GÖNDERİ OLUŞTURMA ====================
-
-function setupStarRating() {
-    const stars = document.querySelectorAll(".star-rating .star");
+function initStarRating() {
+    const starRatingContainer = document.getElementById("star-rating");
     const ratingInput = document.getElementById("post-rating");
     const ratingDisplay = document.getElementById("rating-value-display");
 
-    stars.forEach((star, index) => {
-        star.addEventListener("click", () => {
-            const val = index + 1;
-            if (ratingInput) ratingInput.value = val;
-            if (ratingDisplay) ratingDisplay.innerText = val + ".0";
+    if (!starRatingContainer) return;
 
-            stars.forEach((s, i) => {
-                if (i <= index) {
-                    s.style.color = "#f39c12";
-                } else {
-                    s.style.color = "#ccc";
-                }
-            });
+    starRatingContainer.addEventListener("mousemove", (e) => {
+        const stars = starRatingContainer.querySelectorAll(".star");
+        let val = 0;
+
+        stars.forEach((star, index) => {
+            const rect = star.getBoundingClientRect();
+            const starWidth = rect.width;
+            const mouseX = e.clientX - rect.left;
+
+            if (mouseX > starWidth / 2 && mouseX <= starWidth) {
+                val = index + 1;
+            } else if (mouseX <= starWidth / 2 && mouseX >= 0) {
+                val = index + 0.5;
+            }
         });
+
+        if (val > 0) updateStarsUI(val);
+    });
+
+    starRatingContainer.addEventListener("mouseleave", () => {
+        const currentVal = parseFloat(ratingInput.value) || 5;
+        updateStarsUI(currentVal);
+    });
+
+    starRatingContainer.addEventListener("click", (e) => {
+        const stars = starRatingContainer.querySelectorAll(".star");
+        let val = 0;
+
+        stars.forEach((star, index) => {
+            const rect = star.getBoundingClientRect();
+            const starWidth = rect.width;
+            const mouseX = e.clientX - rect.left;
+
+            if (mouseX > starWidth / 2 && mouseX <= starWidth) {
+                val = index + 1;
+            } else if (mouseX <= starWidth / 2 && mouseX >= 0) {
+                val = index + 0.5;
+            }
+        });
+
+        if (val > 0) {
+            ratingInput.value = val;
+            ratingDisplay.innerText = val.toFixed(1);
+            updateStarsUI(val);
+        }
     });
 }
 
-async function handleCreatePost() {
-    if (!currentUser) {
-        alert("Paylaşım yapmak için giriş yapmalısınız!");
-        return;
-    }
+function updateStarsUI(val) {
+    const stars = document.querySelectorAll("#star-rating .star");
+    stars.forEach((star, index) => {
+        const starVal = index + 1;
+        star.classList.remove("full", "half");
 
-    const type = document.getElementById("post-type")?.value || "kitap";
-    const title = document.getElementById("post-title")?.value.trim();
-    const rating = parseFloat(document.getElementById("post-rating")?.value || "5");
-    const comment = document.getElementById("post-comment")?.value.trim();
-    const watchedReadDate = document.getElementById("post-date")?.value;
-    const imageFile = document.getElementById("post-image-file")?.files[0];
+        if (val >= starVal) {
+            star.classList.add("full");
+            star.style.background = "none";
+            star.style.webkitTextFillColor = "#f39c12";
+        } else if (val >= starVal - 0.5) {
+            star.classList.add("half");
+            star.style.background = "linear-gradient(90deg, #f39c12 50%, #ddd 50%)";
+            star.style.webkitBackgroundClip = "text";
+            star.style.webkitTextFillColor = "transparent";
+        } else {
+            star.style.background = "none";
+            star.style.webkitTextFillColor = "#ddd";
+        }
+    });
+}
 
-    if (!title) {
-        alert("Lütfen eser adını girin.");
-        return;
-    }
+// ==================== POST VE ETKİLEŞİM İŞLEMLERİ ====================
 
-    let imageUrl = null;
-    if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${currentUser.id}_${Math.random()}.${fileExt}`;
-        const filePath = `posts/${fileName}`;
+async function handlePostSubmit(e) {
+    e.preventDefault();
 
-        const { error: uploadError } = await supabaseClient.storage
-            .from('posts-images')
-            .upload(filePath, imageFile);
+    const title = document.getElementById("post-title").value;
+    const type = document.getElementById("post-type").value;
+    const rating = parseFloat(document.getElementById("post-rating").value);
+    const comment = document.getElementById("post-comment").value;
+    const watchedReadDate = document.getElementById("post-date").value;
+    const fileInput = document.getElementById("post-image-file");
+    const file = fileInput ? fileInput.files[0] : null;
+
+    let imageUrl = "";
+
+    if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+        const { error: uploadError } = await supabaseClient
+            .storage
+            .from('post-imagess')
+            .upload(fileName, file);
 
         if (uploadError) {
-            alert("Görsel yüklenemedi: " + uploadError.message);
+            alert("Fotoğraf yükleme hatası: " + uploadError.message);
             return;
         }
 
-        const { data: publicURLData } = supabaseClient.storage
-            .from('posts-images')
-            .getPublicUrl(filePath);
+        const { data: publicUrlData } = supabaseClient
+            .storage
+            .from('post-imagess')
+            .getPublicUrl(fileName);
 
-        imageUrl = publicURLData.publicUrl;
+        imageUrl = publicUrlData.publicUrl;
     }
 
     const { error } = await supabaseClient
         .from("posts")
         .insert([{
-            user_id: currentUser.id,
+            user_id: currentUser ? currentUser.id : null,
             username: currentUsername,
             type: type,
             title: title,
             rating: rating,
             comment: comment,
-            watched_read_date: watchedReadDate,
             image_url: imageUrl,
+            watched_read_date: watchedReadDate,
             likes_count: 0
         }]);
 
     if (error) {
-        alert("Paylaşım kaydedilemedi: " + error.message);
+        alert("Paylaşım eklenirken hata oluştu: " + error.message);
     } else {
-        alert("Başarıyla paylaşıldı!");
-        document.getElementById("post-form").reset();
+        postForm.reset();
+        switchFormType('kitap');
+        document.getElementById("post-rating").value = 5;
+        document.getElementById("rating-value-display").innerText = "5.0";
+        updateStarsUI(5);
+        alert("Paylaşım başarıyla eklendi!");
         switchView('home');
     }
 }
 
-// ==================== POST VE ETKİLEŞİM İŞLEMLERİ ====================
-
 async function loadPosts(category = 'all') {
     if (!currentUser) {
-        if (postsContainer) postsContainer.innerHTML = "<p class='loading-text' style='color: #e74c3c;'>🔒 Gönderileri ve incelemeleri görmek için lütfen giriş yapın.</p>";
+        postsContainer.innerHTML = "<p class='loading-text' style='color: #e74c3c;'>🔒 Gönderileri ve incelemeleri görmek için lütfen giriş yapın.</p>";
         if (authSection) authSection.classList.remove("hidden");
         return;
     }
 
-    if (postsContainer) postsContainer.innerHTML = "<p class='loading-text'>Yükleniyor...</p>";
+    postsContainer.innerHTML = "<p class='loading-text'>Yükleniyor...</p>";
 
     let query = supabaseClient
         .from("posts")
@@ -331,16 +299,16 @@ async function loadPosts(category = 'all') {
     const { data: posts, error } = await query;
 
     if (error) {
-        if (postsContainer) postsContainer.innerHTML = `<p>Paylaşımlar yüklenemedi: ${error.message}</p>`;
+        postsContainer.innerHTML = `<p>Paylaşımlar yüklenemedi: ${error.message}</p>`;
         return;
     }
 
     if (!posts || posts.length === 0) {
-        if (postsContainer) postsContainer.innerHTML = "<p>Bu kategoride henüz paylaşım yapılmamış.</p>";
+        postsContainer.innerHTML = "<p>Bu kategoride henüz paylaşım yapılmamış.</p>";
         return;
     }
 
-    if (postsContainer) postsContainer.innerHTML = "";
+    postsContainer.innerHTML = "";
 
     posts.forEach(post => {
         renderPostCard(post, postsContainer);
@@ -354,7 +322,7 @@ function renderPostCard(post, container) {
     const emptyStars = 5 - Math.ceil(ratingVal);
 
     const starsHtml = "★".repeat(fullStars) + (hasHalf ? "⯨" : "") + "☆".repeat(emptyStars);
-    const imgTag = post.image_url ? `<img src="${post.image_url}" class="post-image" alt="${post.title}" style="max-width:100%; border-radius:8px; margin-bottom:10px;">` : '';
+    const imgTag = post.image_url ? `<img src="${post.image_url}" class="post-image" alt="${post.title}">` : '';
 
     const commentsList = (post.comments || []).map(c => `
         <div class="comment-item" style="font-size: 0.85rem; margin-bottom: 4px;">
@@ -369,19 +337,18 @@ function renderPostCard(post, container) {
 
     const postCard = document.createElement("div");
     postCard.className = "post-card";
-    postCard.style.cssText = "background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);";
     postCard.innerHTML = `
         ${imgTag}
         <div class="post-content">
-            <div class="post-header" style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <div class="post-header">
                 <span style="cursor: pointer; color: #3498db; font-weight: 600;" onclick="loadUserProfile('${post.user_id}', '${post.username || 'Anonim'}')">
                     👤 ${post.username || 'Anonim'}
                 </span>
                 <span>${post.type === 'kitap' ? '📚 Kitap' : '🎬 Film'}</span>
             </div>
-            <h3 class="post-title" style="margin-bottom:5px;">${post.title}</h3>
-            <div class="post-rating" style="color: #f39c12; margin-bottom:5px;">${starsHtml} (${ratingVal}/5)</div>
-            <p class="post-comment" style="margin-bottom:8px;">${post.comment || ''}</p>
+            <h3 class="post-title">${post.title}</h3>
+            <div class="post-rating" style="color: #f39c12;">${starsHtml} (${ratingVal}/5)</div>
+            <p class="post-comment">${post.comment || ''}</p>
             <small style="color:#777;">📅 ${post.watched_read_date || ''}</small>
             
             <hr style="margin: 10px 0; opacity: 0.3;">
@@ -504,6 +471,7 @@ window.loadUserProfile = async function(userId, username) {
     document.getElementById("profile-bio-display").textContent = "Yükleniyor...";
     document.getElementById("profile-avatar-display").src = "https://via.placeholder.com/100";
 
+    // 1. Kullanıcının profil bilgilerini çek
     const { data: profileData } = await supabaseClient
         .from("profiles")
         .select("bio, avatar_url, username")
@@ -517,6 +485,7 @@ window.loadUserProfile = async function(userId, username) {
     document.getElementById("profile-bio-display").textContent = bioText;
     document.getElementById("profile-avatar-display").src = avatarImg;
 
+    // 2. Düzenleme butonu ve form kontrolü
     const editBtn = document.getElementById("toggle-edit-btn");
     const editContainer = document.getElementById("profile-edit-container");
 
@@ -525,45 +494,36 @@ window.loadUserProfile = async function(userId, username) {
     if (currentUser && currentUser.id === userId) {
         if (editBtn) editBtn.style.display = "inline-block";
         document.getElementById("profile-bio-input").value = profileData?.bio || "";
-        
-        const usernameInput = document.getElementById("edit-username-input");
-        if (usernameInput) usernameInput.value = profileData?.username || username;
     } else {
         if (editBtn) editBtn.style.display = "none";
     }
 
-    // Profil altındaki container'ı profile-posts-container olarak ayarlıyoruz
-    let profilePostsContainer = document.getElementById("profile-posts-container");
-    if (!profilePostsContainer) {
-        // Eğer HTML'de bu ID yoksa profil altına dinamik ekleyelim
-        const profileSection = document.getElementById("profile-section");
-        profilePostsContainer = document.createElement("div");
-        profilePostsContainer.id = "profile-posts-container";
-        profileSection.appendChild(profilePostsContainer);
+    // 3. Kullanıcının gönderilerini yükle
+    const profilePostsContainer = document.getElementById("profile-posts-container");
+    if (profilePostsContainer) {
+        profilePostsContainer.innerHTML = "<p class='loading-text'>Yükleniyor...</p>";
+
+        const { data: posts, error } = await supabaseClient
+            .from("posts")
+            .select(`*, comments (*)`)
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false });
+
+        if (error) {
+            profilePostsContainer.innerHTML = `<p>Paylaşımlar yüklenemedi: ${error.message}</p>`;
+            return;
+        }
+
+        if (!posts || posts.length === 0) {
+            profilePostsContainer.innerHTML = `<p>${username} henüz herhangi bir paylaşım yapmamış.</p>`;
+            return;
+        }
+
+        profilePostsContainer.innerHTML = "";
+        posts.forEach(post => {
+            renderPostCard(post, profilePostsContainer);
+        });
     }
-
-    profilePostsContainer.innerHTML = "<p class='loading-text'>Yükleniyor...</p>";
-
-    const { data: posts, error } = await supabaseClient
-        .from("posts")
-        .select(`*, comments (*)`)
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-    if (error) {
-        profilePostsContainer.innerHTML = `<p>Paylaşımlar yüklenemedi: ${error.message}</p>`;
-        return;
-    }
-
-    if (!posts || posts.length === 0) {
-        profilePostsContainer.innerHTML = `<p>${username} henüz herhangi bir paylaşım yapmamış.</p>`;
-        return;
-    }
-
-    profilePostsContainer.innerHTML = "";
-    posts.forEach(post => {
-        renderPostCard(post, profilePostsContainer);
-    });
 };
 
 window.toggleEditForm = function() {
@@ -573,27 +533,25 @@ window.toggleEditForm = function() {
     }
 };
 
-// ==================== PROFİL VE ŞİFRE GÜNCELLEME İŞLEMLERİ ====================
-
-const profileInfoForm = document.getElementById("profile-info-form");
-if (profileInfoForm) {
-    profileInfoForm.addEventListener("submit", async (e) => {
+const profileForm = document.getElementById("profile-form");
+if (profileForm) {
+    profileForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!currentUser) return;
 
-        const newUsername = document.getElementById("edit-username-input")?.value.trim();
-        const newBio = document.getElementById("profile-bio-input")?.value.trim();
-        const avatarFile = document.getElementById("profile-avatar-file")?.files[0];
-
-        let avatarUrl = null;
+        const newBio = document.getElementById("profile-bio-input").value.trim();
+        const avatarFileInput = document.getElementById("profile-avatar-file");
+        const avatarFile = avatarFileInput ? avatarFileInput.files[0] : null;
+        
+        let avatarUrl = document.getElementById("profile-avatar-display").src; // Mevcut resmi koru
 
         if (avatarFile) {
             const fileExt = avatarFile.name.split('.').pop();
-            const fileName = `${currentUser.id}_${Math.random()}.${fileExt}`;
-            const filePath = `avatars/${fileName}`;
+            const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
 
             const { error: uploadError } = await supabaseClient.storage
-                .from('posts-images')
+                .from('avatars')
                 .upload(filePath, avatarFile);
 
             if (uploadError) {
@@ -602,72 +560,30 @@ if (profileInfoForm) {
             }
 
             const { data: publicURLData } = supabaseClient.storage
-                .from('posts-images')
+                .from('avatars')
                 .getPublicUrl(filePath);
-                
+
             avatarUrl = publicURLData.publicUrl;
         }
 
-        const updateData = {};
-        if (newBio !== undefined) updateData.bio = newBio;
-        if (newUsername) updateData.username = newUsername;
-        if (avatarUrl) updateData.avatar_url = avatarUrl;
-
-        const { error: profileError } = await supabaseClient
+        // UPSERT: Kayıt varsa günceller, yoksa yeni satır oluşturur
+        const { error } = await supabaseClient
             .from("profiles")
-            .update(updateData)
-            .eq("id", currentUser.id);
+            .upsert({ 
+                id: currentUser.id,
+                username: currentUsername,
+                bio: newBio,
+                avatar_url: avatarUrl,
+                updated_at: new Date()
+            });
 
-        if (profileError) {
-            alert("Profil güncellenirken hata: " + profileError.message);
-            return;
+        if (error) {
+            alert("Profil güncellenirken hata oluştu: " + error.message);
+        } else {
+            alert("Profil başarıyla kaydedildi!");
+            document.getElementById("profile-bio-display").textContent = newBio || "Henüz bir biyografi eklenmemiş.";
+            document.getElementById("profile-avatar-display").src = avatarUrl;
+            toggleEditForm();
         }
-
-        alert("Profil bilgileriniz başarıyla güncellendi!");
-        window.location.reload();
-    });
-}
-
-const passwordChangeForm = document.getElementById("password-change-form");
-if (passwordChangeForm) {
-    passwordChangeForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (!currentUser) return;
-
-        const oldPassword = document.getElementById("old-password-input")?.value.trim();
-        const newPassword = document.getElementById("new-password-input")?.value.trim();
-
-        if (!oldPassword || !newPassword) {
-            alert("Lütfen hem eski hem de yeni şifrenizi girin.");
-            return;
-        }
-
-        if (newPassword.length < 6) {
-            alert("Yeni şifre en az 6 karakter olmalıdır!");
-            return;
-        }
-
-        const { error: signInError } = await supabaseClient.auth.signInWithPassword({
-            email: currentUser.email,
-            password: oldPassword
-        });
-
-        if (signInError) {
-            alert("Eski şifrenizi yanlış girdiniz: " + signInError.message);
-            return;
-        }
-
-        const { error: updateError } = await supabaseClient.auth.updateUser({
-            password: newPassword
-        });
-
-        if (updateError) {
-            alert("Şifre güncellenemedi: " + updateError.message);
-            return;
-        }
-
-        alert("Şifreniz başarıyla değiştirildi!");
-        document.getElementById("old-password-input").value = "";
-        document.getElementById("new-password-input").value = "";
     });
 }
