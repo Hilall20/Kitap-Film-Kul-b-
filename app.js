@@ -675,3 +675,10 @@ async function handleLogin() {
         switchView('home');
     }
 }
+window.handleLogout = async function() {
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    currentUsername = "Hilal";
+    checkUserSession();
+    switchView('home');
+};
