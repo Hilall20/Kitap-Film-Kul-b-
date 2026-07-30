@@ -131,13 +131,39 @@ async function handleLogin() {
         window.location.reload();
     }
 }
+async function handleLogin() {
+    // Form üzerindeki inputlardan e-posta ve şifreyi alıyoruz
+    const email = document.getElementById("login-email")?.value.trim();
+    const password = document.getElementById("login-password")?.value.trim();
+    
+    if (!email || !password) {
+        alert("Lütfen e-posta ve şifrenizi girin.");
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
+
+    if (error) {
+        alert("Giriş başarısız: " + error.message);
+    } else {
+        alert("Başarıyla giriş yapıldı!");
+        window.location.reload();
+    }
+}
 
 async function handleSignUp() {
-    const email = prompt("Kayıt olmak için e-posta adresinizi girin:");
-    const password = prompt("Bir şifre belirleyin (en az 6 karakter):");
-    const username = prompt("Bir kullanıcı adı belirleyin:") || "Kullanici";
+    // Form üzerindeki inputlardan bilgileri alıyoruz
+    const email = document.getElementById("signup-email")?.value.trim();
+    const password = document.getElementById("signup-password")?.value.trim();
+    const username = document.getElementById("signup-username")?.value.trim() || "Kullanici";
 
-    if (!email || !password) return;
+    if (!email || !password) {
+        alert("Lütfen gerekli alanları doldurun.");
+        return;
+    }
 
     const { data, error } = await supabaseClient.auth.signUp({
         email: email,
@@ -150,18 +176,10 @@ async function handleSignUp() {
     if (error) {
         alert("Kayıt olma başarısız: " + error.message);
     } else {
-        alert("Kayıt başarılı! Lütfen e-postanızı kontrol edin veya giriş yapın.");
+        alert("Kayıt başarılı! Giriş yapabilirsiniz.");
     }
 }
 
-async function handleLogout() {
-    const { error } = await supabaseClient.auth.signOut();
-    if (error) {
-        alert("Çıkış yapılırken hata oluştu: " + error.message);
-    } else {
-        window.location.reload();
-    }
-}
 // ==================== FORM YÖNETİMİ VE YILDIZLAR ====================
 
 window.switchFormType = function(type) {
