@@ -682,3 +682,27 @@ window.handleLogout = async function() {
     checkUserSession();
     switchView('home');
 };
+const profileForm = document.getElementById("profile-form");
+if (profileForm) {
+    profileForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!currentUser) return;
+
+        const newBio = document.getElementById("profile-bio-input").value.trim();
+
+        const { error } = await supabaseClient
+            .from("profiles")
+            .update({ 
+                bio: newBio,
+                updated_at: new Date()
+            })
+            .eq("id", currentUser.id);
+
+        if (error) {
+            alert("Profil güncellenirken hata oluştu: " + error.message);
+        } else {
+            alert("Profil başarıyla güncellendi!");
+            document.getElementById("profile-bio-display").textContent = newBio || "Henüz bir biyografi eklenmemiş.";
+        }
+    });
+}
