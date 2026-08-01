@@ -31,7 +31,76 @@ document.addEventListener("DOMContentLoaded", () => {
 
     initStarRating();
 });
+// ==================== GİRİŞ VE KAYIT İŞLEMLERİ ====================
 
+async function handleLogin(e) {
+    if (e) e.preventDefault();
+
+    // HTML'deki doğru ID'leri kullanıyoruz: id="email" ve id="password"
+    const email = document.getElementById("email")?.value;
+    const password = document.getElementById("password")?.value;
+
+    if (!email || !password) {
+        alert("Lütfen e-posta ve şifrenizi girin!");
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password,
+    });
+
+    if (error) {
+        alert("Giriş başarısız: " + error.message);
+        return;
+    }
+
+    alert("Başarıyla giriş yapıldı!");
+    checkUserSession(); // Oturumu güncelle
+    switchView('home');  // Ana sayfaya yönlendir
+}
+
+async function handleSignUp(e) {
+    if (e) e.preventDefault();
+
+    const email = document.getElementById("email")?.value;
+    const password = document.getElementById("password")?.value;
+    const usernameInput = document.getElementById("username")?.value;
+
+    if (!email || !password) {
+        alert("Lütfen e-posta ve şifrenizi girin!");
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+            data: {
+                username: usernameInput || email.split('@')[0]
+            }
+        }
+    });
+
+    if (error) {
+        alert("Kayıt olma başarısız: " + error.message);
+        return;
+    }
+
+    alert("Kayıt başarılı! Lütfen giriş yapın.");
+}
+
+async function handleLogout() {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) {
+        alert("Çıkış yaparken hata oluştu: " + error.message);
+        return;
+    }
+    currentUser = null;
+    checkUserSession();
+    switchView('home');
+    alert("Çıkış yapıldı.");
+}
 // ==================== SAYFA / GÖRÜNÜM GEÇİŞLERİ ====================
 
 window.switchView = function(view) {
